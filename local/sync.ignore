@@ -1,0 +1,11 @@
+/.bkignore
+/.idea
+/.snakemake
+/.git
+/.gitignore
+/local
+/log
+/results
+/temp
+/**/__pycache__
+/config

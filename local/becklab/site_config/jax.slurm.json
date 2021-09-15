@@ -1,0 +1,23 @@
+{
+    "__default__": {
+        "cpu": "1",
+        "mem": "2000",
+        "rt": "04:00",
+        "partition": "compute",
+        "qos": "batch",
+        "params": ""
+    },
+
+  "ont_stats_merge_sample": {
+    "mem": "24000",
+    "rt": "24:00"
+  },
+  "ont_stats": {
+    "mem": "16000",
+    "rt": "24:00"
+  },
+  "ont_stats_plot_cdf": {
+    "mem": "8000",
+    "rt": "8:00"
+  }
+}

@@ -1,0 +1,120 @@
+### Define before running ###
+
+config = {
+    'sample': 'NA18989',
+    'fofn': '/projects/beck-lab/hgsvc/data/ont/basecall/results/guppy/NA18989/fq.fofn',
+    'cell_replace': '#_guppy_fastq_pass##'
+}
+
+ONT_STAT_DIR = '/projects/beck-lab/audanp/pipelines/ont_stats/202108'
+SVPOP_DIR = '/projects/beck-lab/audanp/tools/svpop/202106'
+
+
+### Extra Libs ###
+
+import sys
+
+sys.path.append(ONT_STAT_DIR)
+sys.path.append(SVPOP_DIR)
+
+import svpoplib
+
+
+### Snakefile ###
+
+import collections
+import os
+import pysam
+import re
+
+import pandas as pd
+import numpy as np
+
+import ontstatlib.plot
+import ontstatlib.stats
+
+# Get config
+FOFN_FILE_NAME = config.get('fofn', None)
+
+SAMPLE_NAME = config.get('sample', None)
+
+if FOFN_FILE_NAME is None:
+    raise RuntimeError('Missing FOFN file in config (list of input PacBio BAM or BAX files). Example: snakemake ... --config fofn=/path/to/sample.fofn')
+
+if SAMPLE_NAME is None:
+    if FOFN_FILE_NAME.lower().endswith('.fofn'):
+        SAMPLE_NAME = os.path.basename(FOFN_FILE_NAME).rsplit('.', 1)[0]
+    else:
+        raise RuntimeError(
+            'Sample name must be set (e.g. snakemake ... --config fofn=/path/to/sample.fofn sample=NAME). If the '
+            'sample name is not set, the FOFN file name must end in .fofn, and the sample name will be the FOFN file '
+            'name without the .fofn extension.'
+        )
+
+def get_cell_dict():
+    """
+    Get a list of input files per cell. Returns a dictionary where keys are cell names and values are a list of
+    input BAM files for that cell.
+    """
+
+    with open(FOFN_FILE_NAME, 'r') as in_file:
+
+        cell_dict = collections.defaultdict(list)
+
+        line_count = 0
+
+        for line in in_file:
+
+            line_count += 1
+
+            line = line.strip()
+
+            if not line or line.startswith('#'):
+                continue
+
+            if not line.lower().endswith('.ccs.bam'):
+                raise RuntimeError(
+                    'Unrecognized file type in FOFN on line {}: Must end with ".ccs.bam": {}'.format(
+                        line_count,
+                        line
+                    )
+                )
+
+            cell_name = re.sub('\.ccs\.bam$', '', os.path.basename(line))
+
+            if cell_name in cell_dict:
+                raise RuntimeError('Duplicate cell on line {}: {} ("{}" conflicts with previous entry "{}")'.format(
+                    line_count,
+                    cell_name,
+                    os.path.basename(line),
+                    os.path.basename(cell_dict[cell_name])
+                ))
+
+            cell_dict[cell_name] = line
+
+    return cell_dict
+    
+
+### Snakemake setup ###
+
+from snakemake import shell
+from snakemake.io import expand
+from snakemake.io import Namedlist
+
+nlset = svpoplib.sm.nlset
+
+wildcards = Namedlist()
+input = Namedlist()
+output = Namedlist()
+params = Namedlist()
+
+def temp(filename):
+    return filename
+
+def touch(filename):
+    return filename
+
+
+### Scraps ###
+
+nlset(wildcards, 'cell', 'm54329U_190607_185248')
